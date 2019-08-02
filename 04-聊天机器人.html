@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>HTML5模拟微信聊天界面</title>
+  <style>
+    /**重置标签默认样式*/
+    * {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-family: '微软雅黑';
+    }
+
+    #container {
+      width: 450px;
+      height: 780px;
+      background: #eee;
+      margin: 20px auto 0;
+      position: relative;
+      box-shadow: 20px 20px 55px #777;
+    }
+
+    .header {
+      background: #000;
+      height: 40px;
+      color: #fff;
+      line-height: 34px;
+      font-size: 20px;
+      padding: 0 10px;
+    }
+
+    .footer {
+      width: 430px;
+      height: 50px;
+      background: #666;
+      position: absolute;
+      bottom: 0;
+      padding: 10px;
+    }
+
+    .footer input {
+      width: 275px;
+      height: 45px;
+      outline: none;
+      font-size: 20px;
+      text-indent: 10px;
+      position: absolute;
+      border-radius: 6px;
+      right: 80px;
+    }
+
+    .footer span {
+      display: inline-block;
+      width: 62px;
+      height: 48px;
+      background: #ccc;
+      font-weight: 900;
+      line-height: 45px;
+      cursor: pointer;
+      text-align: center;
+      position: absolute;
+      right: 10px;
+      border-radius: 6px;
+    }
+
+    .footer span:hover {
+      color: #fff;
+      background: #999;
+    }
+
+    #user_face_icon {
+      display: inline-block;
+      background: red;
+      width: 60px;
+      height: 60px;
+      border-radius: 30px;
+      position: absolute;
+      bottom: 6px;
+      left: 14px;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    img {
+      width: 60px;
+      height: 60px;
+    }
+
+    .content {
+      font-size: 20px;
+      width: 435px;
+      height: 662px;
+      overflow: auto;
+      padding: 5px;
+    }
+
+    .content li {
+      margin-top: 10px;
+      padding-left: 10px;
+      width: 412px;
+      display: block;
+      clear: both;
+      overflow: hidden;
+    }
+
+    .content li img {
+      float: left;
+    }
+
+    .content li span {
+      background: #7cfc00;
+      padding: 10px;
+      border-radius: 10px;
+      float: left;
+      margin: 6px 10px 0 10px;
+      max-width: 310px;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 3px #ccc;
+    }
+
+    .content li img.imgleft {
+      float: left;
+    }
+
+    .content li img.imgright {
+      float: right;
+    }
+
+    .content li span.spanleft {
+      float: left;
+      background: #fff;
+    }
+
+    .content li span.spanright {
+      float: right;
+      background: #7cfc00;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="container">
+    <div class="header">
+      <span style="float: left;">知心姐姐</span>
+      <span style="float: right;"></span>
+    </div>
+    <ul class="content">
+  
+      <li v-for='massage in messageList'>
+        <template v-if='massage.isme'>
+          <img src="./img/right.png" class="imgright"><span class="spanright">{{massage.content}}</span>
+        </template>
+        <template v-else>
+          <img src="./img/left.png" class="imgleft"><span class="spanleft">{{massage.content}}</span>
+        </template>
+      </li>
+     
+    </ul>
+    <div class="footer">
+      <div id="user_face_icon">
+        <img src="./img/right.png" alt="">
+      </div>
+      <input id="text" type="text" placeholder="说点什么吧..." v-model='inputVal' @keyup.enter='chat'>
+      <span id="btn" @click='chat'>发送</span>
+    </div>
+  </div>
+
+  <!-- 开发环境版本，包含了有帮助的命令行警告 jquery.js -->
+  <script src="./lib/vue.js"></script>
+  <!-- jQuery -->
+  <script src="./lib/jquery-1.12.4.min.js"></script>
+
+
+  <script>
+
+    new Vue({
+
+      el: '#container',
+      data: {
+        inputVal: '',
+
+        // 信息清单,所有的信息先收集在这里
+        messageList: [],
+
+      },
+      methods: {
+
+        chat() {
+
+          // 判断为空
+          if (this.inputVal == '') {
+            alert('请输入')
+            return
+          }
+
+          // 这个是自己耳的信息渲染
+          this.messageList.push({
+            content: this.inputVal,
+            isme: true                   /* 用这个标志区分是自己的信息还是对面的回复信息 */
+          });
+          // 发送请求获得对方回复的信息
+          $.ajax({
+            type: 'post',
+            url: 'http://www.tuling123.com/openapi/api',
+            data: {
+              key: 'a618e456f0744066840ceafb6a249d9d',
+              info: this.inputVal
+            },
+            success: backData => {
+              this.messageList.push({
+                content: backData.text,
+                isme: false
+              });
+            }
+          });
+          this.inputVal = "";
+        }
+      },
+
+      // 1. vue提供给我们8个回调函数，供我们写自定义逻辑
+      // 2. 生命周期钩子的 `this` 上下文指向调用它的 Vue 实例。 和methods里面的方法里的this是一样的
+      // 3. 生命周期钩子函数跟data、el平级
+      // 4. updated 数据更新后，引起dom更新完成，会触发updated
+      updated(){
+      // console.log('updated')
+      // $('.content').scrollTop(9999988)
+      $('.content').scrollTop(9999988)
+    }
+    })
+
+
+
+  </script>
+</body>
+
+</html>
+
+<!-- 1.我输入消息，回车或者点发送，添加我的消息
+  1. 获取我输入的消息 v-model:inputVal
+  2. @keyup.enter/@click: chat
+  3.消息数组messageList:[]
+  4. v-for:messageList
+  4. chat里面 messageList.push(inputVal)
+2.姐姐回复消息
+  1.  请求地址：http://www.tuling123.com/openapi/api
+      请求方法：post
+      请求参数：key,info
+  2. $.ajax success
+3.消息数组格式调整
+  1.messageList:[
+    {
+      content:'你好',
+      isme:true
+    },
+    {
+      content:'好呀',
+      isme:false
+    },
+    {
+      content:'吃饭了吗',
+      isme:true
+    },
+    {
+      content:'滚',
+      isme:false
+    }
+  ]
+  2.根据isme输出姐姐的消息和我的消息的样式 -->
+
+<!-- 开发环境版本，包含了有帮助的命令行警告 jquery.js -->
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<!-- jQuery -->
+<script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
