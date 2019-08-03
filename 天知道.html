@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>天知道</title>
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/iconfont.css" />
+    <link rel="stylesheet" href="css/main2.css" />
+    <script type="text/javascript" src="js/jquery-1.12.4.min.js"></script>
+    <style>
+      .tem .iconfont {
+        font-size: 50px;
+      }
+
+
+      .fade-enter-active, .fade-leave-active{
+        transition: all 1s ease;
+      }
+      .fade-enter,
+      .fade-leave-to{
+        opacity: 0;
+        transform: translateY(50px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap" id="app">
+      <div class="search_form">
+        <div class="logo"><img src="img/logo.png" alt="logo" /></div>
+        <div class="form_group">
+          <input
+            type="text"
+            class="input_txt"
+            placeholder="请输入查询的天气"
+            v-model.trim="city"
+            @keyup.enter="searchWeather('')"
+          />
+          <button class="input_sub" :class="{loading:isloading}" @click="searchWeather('')">搜 索</button>
+        </div>
+        <div class="hotkey">
+          <a href="javascript:;" @click="searchWeather('北京')">北京</a>
+          <a href="javascript:;" @click="searchWeather('上海')">上海</a>
+          <a href="javascript:;" @click="searchWeather('广州')">广州</a>
+          <a href="javascript:;" @click="searchWeather('深圳')">深圳</a>
+        </div>
+      </div>
+      <transition-group class="weather_list" tag="ul" name='fade'>
+        <li v-for='(weather,index) in weatherList' :key='index' :style="{ 'transition-delay' :index*100+'ms' }">
+                                                               <!-- :style="{'trasition-delay':index*100+'ms'}"是为了让每个li出来的时间不一样 -->
+          <div class="info_type">
+            <span class="iconfont" v-if="weather.type.indexOf('雨')!=-1">&#xe931;</span>
+            <span class="iconfont" v-if="weather.type.indexOf('晴')!=-1">&#xe933;</span>
+            <span class="iconfont" v-if="weather.type.indexOf('阴')!=-1">&#xe92d;</span>
+            <span class="iconfont" v-if="weather.type.indexOf('雪')!=-1">&#xeb79;</span>
+            <span class="iconfont" v-if="weather.type.indexOf('云')!=-1">&#xe931;</span>
+            <span class="iconfont" v-if="weather.type.indexOf('雷')!=-1">&#xeb77;</span>
+            <span class="iconfont" v-if="weather.type.indexOf('雹')!=-1">&#xeb76;</span>
+            <span class="iconfont" v-if="weather.type.indexOf('雾')!=-1">&#xeb75;</span>
+          </div>    <!-- 下面字符串做处理是因为得到的数据和结构代码重复 -->
+
+          <div class="info_temp">高 <b>{{weather.high.split(' ')[1]}}</b><br>低 {{weather.low.split(' ')[1]}}</div>
+          <div class="info_date"><b>{{city}}</b><span>{{weather.date}}</span></div>
+        </li>
+
+      </transition-group>
+  
+    </div>
+    <!-- 开发环境版本，包含了有帮助的命令行警告 -->
+    <script src="./js/vue.js"></script>
+    <script src="./js/axios.js"></script>
+    <script>
+    
+    new Vue({
+      el:'#app',
+      data:{
+        city:'',
+        weatherList:[],
+        isloading:false
+      },
+      methods:{
+        searchWeather(city){   /* 在定义事件处理方法是,,方法里面不传参默认是 event 事件对象,,对于这个接口来说是个不可用的地名会有1002错误 */
+          // 这里面的city从上面点击事件哪里传过来,,,这边接收到了以后发送请求打印可以看到有相应数据,,
+          // 但是没有把这个参数传到实例而里面去，，也没有挂靠到容器上去，，所以渲染不出来
+          // 发送请求1前,把搜索状态改为转圈搜索转态
+          if(city!=''){      /* 判断city的值来判断是线面四个的点击事件还是input框的点击事件 */
+                              // 在input框里括号里什么也不输,默认undefined也会进入这里面来判断为真,最后city和this.city都为undefined
+            this.city=city;
+          }
+          console.log(city);   /* 这个city是输入框下面是个城市的点击点击事件传过来 */
+          console.log(this.city);   /* 闯过来的时候实例中的city还是空的,,所以要判断 */
+          
+          this.isloading=true;
+
+          this.weatherList = [];     /* 加这句是因为在点击下面4个是只有第一个有动画,,后面点击时没有创建li标签了,,只有在里面修改数据 */
+                                    // 所以手动每次把数据列表清空,,让他重新创建li 然后有动画效果
+
+          axios
+          .get(`http://wthrcdn.etouch.cn/weather_mini?city=${this.city}`)
+          .then(res=>{
+
+
+            this.isloading=false;    /* 这里的this就是实例里面的this,,,是应为箭头函数 */
+
+            // 根据答应的数据,搜索的关键字错误是,会提示1002
+            if(res.data.status != 1000){
+              //  alert(res.data.desc);
+               return ;       
+            }
+
+            this.weatherList=res.data.data.forecast
+            console.log(this.weatherList);
+             
+          })
+        }
+      }
+    })
+    
+    </script>
+  </body>
+</html>
