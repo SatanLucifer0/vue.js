@@ -46,7 +46,8 @@
           <a href="javascript:;" @click="searchWeather('深圳')">深圳</a>
         </div>
       </div>
-      <transition-group class="weather_list" tag="ul" name='fade'>
+      <transition-group class="weather_list" tag="ul" name='fade' v-on:after-enter="afterEnter">
+                                                                  <!-- 我们想要在他动画退出是一起 ,加一个动画钩子函数 -->
         <li v-for='(weather,index) in weatherList' :key='index' :style="{ 'transition-delay' :index*100+'ms' }">
                                                                <!-- :style="{'trasition-delay':index*100+'ms'}"是为了让每个li出来的时间不一样 -->
           <div class="info_type">
@@ -80,6 +81,12 @@
         isloading:false
       },
       methods:{
+
+        // 动画勾子函数
+        afterEnter(el){
+          el.style='';
+        },
+
         searchWeather(city){   /* 在定义事件处理方法是,,方法里面不传参默认是 event 事件对象,,对于这个接口来说是个不可用的地名会有1002错误 */
           // 这里面的city从上面点击事件哪里传过来,,,这边接收到了以后发送请求打印可以看到有相应数据,,
           // 但是没有把这个参数传到实例而里面去，，也没有挂靠到容器上去，，所以渲染不出来
@@ -109,8 +116,11 @@
                return ;       
             }
 
+           setTimeout(()=>{     /* 当我们点击太快的时候,,我们会重新取空weatherList 导致前一次的退出动画效果没有时间执行
+                                 所以我们加一个延时器 */
             this.weatherList=res.data.data.forecast
             console.log(this.weatherList);
+           },550)
              
           })
         }
