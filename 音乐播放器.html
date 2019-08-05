@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>音乐播放器</title>
+  <link rel="stylesheet" href="./lib/my.css">
+
+  <script src="./lib/vue.js"></script>
+  <script src="./lib/axios.js"></script>
+  <!-- 滚动 -->
+  <script src="./lib/iscroll.js"></script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="play_wrap" id="player">
+      <div class="search_bar">
+        <img src="images/player_title.png" alt="" />
+        <input type="text" v-model="searchMusic" @keyup.enter="searchThisMusic()">
+        <img src="./images/zoom.png" alt="" class="search_icon" @click="searchThisMusic()">
+      </div>
+      <div class="center_con">
+        <!-- 歌曲列表滚动 -->
+        <div class="song_wrapper" ref='songref'>
+          <ul class="song_list">
+            <li v-for="(music,index) in musicList" @dblclick="playMusic(music.id)">
+              {{music.name}}
+            </li>
+          </ul>
+        </div>
+
+        <div class="player_con">
+          <!-- 黑胶唱片上的撞针 -->
+          <img src="images/player_bar.png" class="play_bar" :class="{playing:isplaying}" />
+          <!-- 黑胶碟片 -->
+          <img src="images/disc.png" class="disc autoRotate" :class="{playing:isplaying}" />
+          <!-- 歌曲的封面 -->
+          <img :src="musicPic" class="cover autoRotate " :class="{playing:isplaying}" />
+        </div>
+
+        <!-- 歌曲评论滚动 -->
+        <div class="comment_list" ref='commentref'>
+          <div>
+            <dl v-for='comment in commentList'>
+              <dt>
+                <img :src="comment.user.avatarUrl" alt="" />
+              </dt>
+              <dd class="name">{{comment.user.nickname}}</dd>
+              <dd class="detail">
+                {{comment.content}}
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="audio_con">
+        <audio controls autoplay loop class="myaudio" :src="musciUrl" @play='mplay()' @pause='mpause()'></audio>
+        <!-- @play='mplay()' @pause='mpause()这里只是两个自定义的属性,,为了控制 isplaying 的真假从而控制黑胶和图片 -->
+      </div>
+
+    </div>
+  </div>
+
+</body>
+
+<script>
+
+  new Vue({
+    el: '.wrap',
+    data: {
+      isplaying: false,
+
+      // 用户的搜索关键字
+      searchMusic: '',
+      // 搜索到的音乐列表
+      musicList: [],
+      // 根据id搜索到的歌曲 url
+      musciUrl: '',
+      // 点击歌曲播放得到的歌的背景图
+      musicPic: '',
+      // 评论列表
+      commentList: [],
+      // 歌曲列表滚动
+      songSroll: null,
+      // 评论的列表滚动
+      comSroll:null,
+
+    },
+
+
+    mounted() {
+      this.songSroll = new IScroll(this.$refs.songref);
+      this.comScroll = new IScroll(this.$refs.commentref, {
+        scrollbars: true
+      });
+    },
+
+    updated() {
+
+      this.songSroll.refresh();
+      this.comScroll.refresh();
+    },
+
+
+    methods: {
+
+      searchThisMusic() {
+
+        // 根据用户输入搜索歌曲并显示在左边列表里
+        axios
+          .get(`https://autumnfish.cn/search?keywords=${this.searchMusic}`)
+          .then(res => {
+            console.log(res.data.result.songs);
+            this.musicList = res.data.result.songs;
+          })
+      },
+
+
+
+      playMusic(mid) {
+
+        // 根据id 搜索歌曲的 url  把url通过v-bind动态绑定给 audio 的src
+        axios
+          .get(`https://autumnfish.cn/song/url?id=${mid}`)
+          .then(res => {
+            console.log(res);
+            console.log(res.data.data[0].url);
+            this.musciUrl = res.data.data[0].url;
+          })
+
+        // 发送请求获取歌封面的 picUrl,把他通过 v-bind绑定给想应标签
+        axios.get("https://autumnfish.cn/song/detail?ids=" + mid)
+          .then(res => {
+            console.log(res.data.songs[0].al.picUrl);
+            this.musicPic = res.data.songs[0].al.picUrl;
+          })
+
+
+        // 获取当前热的评论
+        axios.get("https://autumnfish.cn/comment/music?limit=1&id=" + mid)
+          .then(res => {
+            console.log(res.data.hotComments);
+            this.commentList = res.data.hotComments;
+          })
+      },
+      mplay() {
+        this.isplaying = true;
+        console.log(1);
+
+      },
+      mpause() {
+        this.isplaying = false;
+        console.log(2);
+      }
+
+    }
+
+  })
+
+
+</script>
+
+</html>
