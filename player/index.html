@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Document</title>
+  <link rel="stylesheet" href="./css/index.css" />
+  <link rel="stylesheet" href="./css/iconfont.css" />
+  <link rel="stylesheet" href="./css/player.css" />
+  <link rel="stylesheet" href="./css/results.css" />
+  <link rel="stylesheet" href="./css/video.css" />
+  <link rel="stylesheet" href="./css/comment.css" />
+</head>
+
+<body>
+  <div id="player">
+    <h2 class="title">黑云音乐</h2>
+    <div class="search">
+      <input type="text" v-model="songName" @keyup.enter="searchSong" />
+      <button @click="searchSong">
+        <span class="iconfont icon-search"></span>
+      </button>
+    </div>
+    <div class="tab-wrapper">
+
+    </div>
+
+    <!-- 对应的内容区域 -->
+    <div class="tab-content">
+
+    </div>
+    <router-view></router-view> <!-- 注意,,把匹配的路由渲染在容器里 -->
+  </div>
+
+
+</body>
+
+</html>
+<script src="./lib/vue.js"></script>
+<script src="./lib/vue-router.js"></script>
+<script src="./lib/axios.js"></script>
+
+<!-- 搜索结果的模版 -->
+<script id="results" type='text/html'>
+  <div class="result-wrapper">
+    <div class="song" v-for="song in songList">
+      <div class="name">
+        <span class="iconfont icon-play" @click='toplayer(song)'></span>
+        {{song.name}}
+        <span class="iconfont icon-editmedia" v-if="song.mvid!=0"   @click='toMv(song.mvid)'></span>
+      </div>
+      <div class="singer">{{song.artists | formatName}}</div>
+      <div class="album">《{{song.album.name}}》</div>
+      <div class="time">{{song.duration | formatTime}}</div>
+    </div>
+  </div>
+</script>
+
+
+<!-- 播放音乐的模版 -->
+<script id="playing" type='text/html'>
+  <div class="player">
+      <div class="left" >
+        <img class='disc' src="./img/disc.png" alt="">
+        <img class='cover' src="./img/cover.png" alt="">
+      </div>
+      <div class="right">
+        <div class="title"><img src="./img/tag.png" alt=""><span>{{detail.name}}</span> </div>
+        <div class="singer">歌手: <span>{{detail.ar[0].name }}</span></div>
+        <div class="album">所属专辑: <span>{{detail.al.name}}</span></div>
+        <audio class='audio' controls :src="songUrl"></audio>
+        <ul class='lyric-container'>
+          <li class='lyric'>难以忘记</li>
+          <li class='lyric'>初次见你</li>
+          <li class='lyric'>那双迷人的小眼睛</li>
+        </ul>
+      </div>
+  </div>
+</script>
+
+
+
+<!-- mv的模版 -->
+<script id="mv" type="text/html">
+  <div class="video">
+      <div class="title-wrapper">
+        <span class='tag'>MV</span>
+        <span class='title'>{{mvData.name}}</span>
+        <span class='artist'>{{mvData.artistName}}}</span>
+      </div>
+      <video :src="mvData.brs[480] ? mvData.brs[480] : mvData.brs[240]" controls></video>
+  </div>
+
+</script>
+
+
+
+
+
+<!-- 实例除vue对象 -->
+<script>
+  // 创建组件
+  // 根据点击事件和键盘弹起事件会转到 路由result 模块  
+  // 创建搜索结果模块组件
+  const results = {
+    template: "#results",
+    // 搜索到的结果展示在仪表形式展示在 result 页面,,所以顶一个数组接收
+    data() {
+      return {
+        songList: [],
+      }
+    },
+    methods: {
+      toplayer(song) {
+        this.$router.push(`/player/${song.id}`);
+      },
+      toMv(mvid) {
+        this.$router.push(`/mv/${mvid}`);
+      },
+
+
+      getData() {
+        let name = this.$route.params.songName;
+        axios.get(`https://autumnfish.cn/search?keywords=${name}`)
+          .then(res => {
+            console.log(res.data.result.songs);
+            this.songList = res.data.result.songs;
+          })
+      }
+    },
+
+    // 一拿到内存里面的数据就发送请求
+    // 应该组件一打开就查出数据
+    // 而组件一打开的钩子是：beforeCreate和created，我们用created
+    // 因为查出来的数据要保存到data，而created才能访问data
+    created() {
+
+      this.getData()
+    },
+
+
+
+    // 在我们搜索一次之后在搜索一次,,我们发生变化的仅仅是闯过来的的歌名,,,仅仅是主页面的传值改变了
+    // 而我们的所搜结果页面是没有数据更新的,所以不会重新渲染,
+    // 这时候在所搜结果页面加一个监听事件,,监听的目标数据一旦改变就调用某个方法
+    watch:{
+      // 侦听器里不允许使用点语法
+      // 解决办法：把它用字符串包起来
+      '$route.params.songName'() {
+        // 当搜索关键字发生变化，就会来重新发请求加载数据
+        this.getData()
+      }
+    },
+
+
+
+    // 时间和歌手的名字输出的格式并不是我们想要的,,树妖过滤一下
+    filters: {
+      //歌曲时长过滤
+      formatTime(value) {
+
+        let sec = Math.round(value / 1000);
+        let min = parseInt(sec / 60);
+        sec = sec % 60;
+
+        // 这里要判断一下,,最后得到的秒数为10以下给补个0
+        // sec = sec < 10 ? '0' + sec : sec;
+
+        sec = sec.toString().padStart(2, '0')
+        /* ES6中的字符串方法padStart(参数1,参数2)参数1表示总长度多少位,参数2是要添加的字符串 */
+        /* 从开始为填充,,,补够2位, 补的字符为0 */
+        return min + ':' + sec;
+      },
+      formatName(value) {
+        let str = '';
+        for (let i = 0; i < value.length; i++) {
+          str += value[i].name + '/';
+
+        }
+        // 去掉最后一个 |
+        str = str.substr(0, str.length - 1);
+        return str;
+      },
+    }
+
+  };
+
+
+  // 播放音乐的组件
+  const player = {
+    template: '#playing',
+    data() {
+
+      return {
+        // 这是为了不报错
+        detail: {
+          name: '',
+          al: {},
+          ar: [{}, {}],
+        },
+
+        songUrl: "",
+      }
+
+    },
+    created() {
+      // 获取路由传过来的id 发送请求获取个的详细信息显示在页面
+      let id = this.$route.params.id;
+      console.log(id);
+
+      axios.get(`https://autumnfish.cn/song/detail?ids=${id}`)
+        .then(res => {
+          console.log(res.data.songs);
+          this.detail = res.data.songs[0]
+        })
+      // 根据id获取歌的 播放地址,,动态绑定给 audio的src属性
+      axios.get(`https://autumnfish.cn/song/url?id=${id}`)
+        .then(res => {
+          console.log(res);
+          this.songUrl = res.data.data[0].url;
+        })
+    }
+  }
+
+
+
+
+  // MV 的组件
+  const mv = {
+    template: '#mv',
+    data() {
+      return {
+        mvData: {
+          name: '',
+          artistName: '',
+          brs: {}
+        }
+      }
+    },
+    created() {
+      let mvid = this.$route.params.mvid;
+      axios.get(`https://autumnfish.cn/mv/detail?mvid=${mvid}`)
+        .then(res => {
+          console.log(res);
+          this.mvData = res.data.data;
+        })
+    },
+  }
+
+
+
+  // 设置组件路由规则
+  const routers = [
+    { path: '/results/:songName', component: results },
+    { path: '/player/:id', component: player },
+    { path: '/mv/:mvid', component: mv },
+
+  ];
+
+
+
+
+  // 创建路由
+  const router = new VueRouter({
+    routes: routers
+  })
+
+
+
+  new Vue({
+
+    el: "#player",
+    data: {
+      songName: '神话'
+    },
+    methods: {
+      searchSong() {
+        // 这个在主页面点击或者键盘弹起是  就把拿到的歌名传给搜索结果页面
+        //其实只要做跳转，并且把歌名传递给results组件
+        this.$router.push(`/results/${this.songName}`)
+      }
+    },
+    router
+
+
+
+  });
+
+
+
+</script>
